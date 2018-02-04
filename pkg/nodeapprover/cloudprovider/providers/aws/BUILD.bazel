@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["aws.go"],
+    importpath = "github.com/coreos/kubecsr/pkg/nodeapprover/cloudprovider/providers/aws",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/nodeapprover/cloudprovider:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/ec2metadata:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/autoscaling:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
+    ],
+)

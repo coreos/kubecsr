@@ -1,0 +1,50 @@
+package: github.com/coreos/kubecsr
+import:
+- package: github.com/aws/aws-sdk-go
+  subpackages:
+  - aws
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/ec2metadata
+  - aws/session
+  - service/autoscaling
+  - service/ec2
+- package: github.com/golang/glog
+- package: github.com/golang/mock
+  subpackages:
+  - gomock
+- package: github.com/juju/ratelimit
+- package: k8s.io/api
+  subpackages:
+  - certificates/v1beta1
+  - core/v1
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/api/errors
+  - pkg/apis/meta/v1
+  - pkg/labels
+  - pkg/runtime
+  - pkg/util/runtime
+  - pkg/util/sets
+  - pkg/util/uuid
+  - pkg/util/wait
+- package: k8s.io/client-go
+  subpackages:
+  - informers
+  - kubernetes
+  - listers/certificates/v1beta1
+  - listers/core/v1
+  - rest
+  - tools/cache
+  - tools/clientcmd
+  - tools/leaderelection
+  - tools/leaderelection/resourcelock
+  - tools/record
+  - util/certificate/csr
+  - util/workqueue
+- package: github.com/Azure/go-autorest
+  version: v9.9.0
+  subpackages:
+  - autorest
+- package: github.com/Azure/azure-sdk-for-go
+  version: v12.4.0-beta
