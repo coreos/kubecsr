@@ -1,0 +1,112 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: kube-system
+  name: nodeapprover
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nodeapprover
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["nodes"]
+  verbs: ["get", "watch", "list",]
+- apiGroups: ["certificates.k8s.io"]
+  resources: ["certificatesigningrequests"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["certificates.k8s.io"]
+  resources: ["certificatesigningrequests/status", "certificatesigningrequests/approval"]
+  verbs: ["update"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterrolebindings"]
+  resourceNames: ["system-bootstrap-approve-node-client-csr"]
+  verbs: ["get", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nodeapprover
+  namespace: kube-system
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "watch", "list", "update", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nodeapprover
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nodeapprover
+subjects:
+- kind: ServiceAccount
+  name: nodeapprover
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nodeapprover
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nodeapprover
+subjects:
+- kind: ServiceAccount
+  name: nodeapprover
+  namespace: kube-system
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: nodeapprover
+  namespace: kube-system
+  labels:
+    k8s-app: nodeapprover
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: nodeapprover
+  template:
+    metadata:
+      labels:
+        k8s-app: nodeapprover
+    spec:
+      containers:
+      - name: nodeapprover
+        image: quay.io/abhinavdahiya/nodeapprover:b07e27fe7cbd5e158ca7759eac3b395c9c283427-dirty
+        args:
+        - --cloud-provider=aws
+        - --v=4
+        resources:
+          limits:
+            cpu: 20m
+            memory: 50Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /etc/ssl/certs
+          name: ssl-certs-host
+          readOnly: true
+      serviceAccount: nodeapprover
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      volumes:
+      - hostPath:
+          path: /usr/share/ca-certificates
+        name: ssl-certs-host
