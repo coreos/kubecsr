@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["providers.go"],
+    importpath = "github.com/coreos/kubecsr/pkg/nodeapprover/cloudprovider/providers",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/nodeapprover/cloudprovider/providers/aws:go_default_library"],
+)
