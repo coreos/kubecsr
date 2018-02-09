@@ -1,0 +1,8 @@
+language: go
+go:
+  - 1.9.x
+install:
+  - go get github.com/golang/lint/golint
+  - go get github.com/golang/mock/mockgen
+script:
+  - make clean check

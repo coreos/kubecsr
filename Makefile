@@ -11,7 +11,7 @@ all:
 	#_output/bin/$(LOCAL_OS)/binary
 	#_output/bin/linux/binary
 
-check:
+check: generate
 	@gofmt -l -s $(GOFILES) | read; if [ $$? == 0 ]; then gofmt -s -d $(GOFILES); exit 1; fi
 	@golint -set_exit_status $(shell go list ./...)
 	@go vet $(shell go list ./...)
@@ -24,6 +24,9 @@ _output/bin/%: GOARCH:=amd64
 _output/bin/%: $(GOFILES)
 	mkdir -p $(dir $@)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GOFLAGS) -o $@ github.com/coreos/kubecsr/cmd/$(notdir $@)
+
+generate:
+	@go generate $(shell go list ./...)
 
 vendor:
 	@dep ensure
