@@ -10,6 +10,8 @@ import (
 	"github.com/golang/glog"
 )
 
+//go:generate mockgen -package fake -mock_names Interface=Fake -destination=./providers/fake/fake.go github.com/coreos/kubecsr/pkg/cloudprovider Interface
+
 // Interface defines functions that need to be implemented by cloudproviders.
 type Interface interface {
 	// Returns the instance group id from the provider instance id.
