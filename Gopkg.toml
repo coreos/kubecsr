@@ -3,5 +3,9 @@
   unused-packages = true
 
 [[constraint]]
-name = "github.com/golang/glog"
-revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+  name = "github.com/golang/glog"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[constraint]]
+  name = "github.com/golang/mock"
+  version = "v1.0.0"

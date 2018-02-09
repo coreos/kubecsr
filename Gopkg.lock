@@ -6,9 +6,15 @@
   packages = ["."]
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
+[[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2ab01fb711308314b5f29eb80bce735e367a87097c0562e11c8adee844a31d5e"
+  inputs-digest = "4063322cdd9af3c96c3d904b5c8e8bf7ba346317da9335124f52dc064328b6b3"
   solver-name = "gps-cdcl"
   solver-version = 1
