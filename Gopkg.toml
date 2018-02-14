@@ -1,26 +1,139 @@
-# Gopkg.toml example
-#
-# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
-# for detailed Gopkg.toml documentation.
-#
-# required = ["github.com/user/thing/cmd/thing"]
-# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
-#
-# [[constraint]]
-#   name = "github.com/user/project"
-#   version = "1.0.0"
-#
-# [[constraint]]
-#   name = "github.com/user/project2"
-#   branch = "dev"
-#   source = "github.com/myfork/project2"
-#
-# [[override]]
-#   name = "github.com/x/y"
-#   version = "2.4.0"
-
-
 [prune]
-  non-go = false
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/aws/aws-sdk-go"
+  version = "v1.12.73"
+
+[[constraint]]
+  name = "k8s.io/api"
+  revision = "kubernetes-1.9.0"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  revision = "kubernetes-1.9.0"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "v6.0.0"
+
+[[constraint]]
+  name = "github.com/golang/glog"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[constraint]]
+  name = "github.com/juju/ratelimit"
+  version = "1.0.1"
+
+[[override]]
+  name = "github.com/davecgh/go-spew"
+  version = "v1.1.0"
+
+[[override]]
+  name = "github.com/ghodss/yaml"
+  version = "v1.0.0"
+
+[[override]]
+  name = "github.com/go-ini/ini"
+  version = "v1.32.0"
+
+[[override]]
+  name = "github.com/gogo/protobuf"
+  version = "v1.0.0"
+
+[[override]]
+  name = "github.com/golang/protobuf"
+  version = "v1.0.0"
+
+[[override]]
+  name = "github.com/google/btree"
+  revision = "e89373fe6b4a7413d7acd6da1725b83ef713e6e4"
+
+[[override]]
+  name = "github.com/google/gofuzz"
+  revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
+
+[[override]]
+  name = "github.com/googleapis/gnostic"
+  version = "v0.1.0"
+
+[[override]]
+  name = "github.com/gregjones/httpcache"
+  revision = "2bcd89a1743fd4b373f7370ce8ddc14dfbd18229"
+
+[[override]]
+  name = "github.com/hashicorp/golang-lru"
+  revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
+
+[[override]]
+  name = "github.com/jmespath/go-jmespath"
+  revision = "0b12d6b5"
+
+[[override]]
+  name = "github.com/json-iterator/go"
+  version = "1.0.5"
+
+[[override]]
+  name = "github.com/petar/GoLLRB"
+  revision = "53be0d36a84c2a886ca057d34b6aa4468df9ccb4"
+
+[[override]]
+  name = "github.com/peterbourgon/diskv"
+  version = "v2.0.1"
+
+[[override]]
+  name = "github.com/spf13/pflag"
+  version = "v1.0.0"
+
+[[override]]
+  name = "golang.org/x/net"
+  revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
+
+[[override]]
+  name = "golang.org/x/text"
+  revision = "4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1"
+
+[[override]]
+  name = "gopkg.in/inf.v0"
+  version = "v0.9.0"
+
+[[override]]
+  name = "gopkg.in/yaml.v2"
+  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
+
+[[override]]
+  name = "github.com/emicklei/go-restful"
+  version = "v2.6.0"
+
+[[override]]
+  name = "github.com/go-openapi/jsonpointer"
+  revision = "779f45308c19820f1a69e9a4cd965f496e0da10f"
+
+[[override]]
+  name = "github.com/go-openapi/jsonreference"
+  revision = "36d33bfe519efae5632669801b180bf1a245da3b"
+
+[[override]]
+  name = "github.com/go-openapi/spec"
+  revision = "e5cac0107f33264c59bcfe43d12a0e19eba644f0"
+
+[[override]]
+  name = "github.com/go-openapi/swag"
+  revision = "84f4bee7c0a6db40e3166044c7983c1c32125429"
+
+[[override]]
+  name = "github.com/mailru/easyjson"
+  revision = "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
+
+[[override]]
+  name = "github.com/PuerkitoBio/purell"
+  version = "v1.1.0"
+
+[[override]]
+  name = "github.com/PuerkitoBio/urlesc"
+  revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[override]]
+  name = "k8s.io/kube-openapi"
+  revision = "275e2ce91dec4c05a4094a7b1daee5560b555ac9"
