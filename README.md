@@ -1,5 +1,7 @@
 # Kubernetes CSR utilities
 
+[![Build Status](https://travis-ci.org/coreos/kubecsr.svg?branch=master)](https://travis-ci.org/coreos/kubecsr)
+
 ![](/Documentation/img/caution.png)
 
 DO NOT DEPEND ON ANYTHING IN THIS REPO

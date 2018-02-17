@@ -7,8 +7,8 @@ install:
 - go get github.com/golang/lint/golint
 script:
 - make clean check
-after_sucess:
-- if [ "$TRAVIS_BRANCH" == "master" ]; then
+after_success:
+- if [[ "$TRAVIS_BRANCH" == "master" && TRAVIS_PULL_REQUEST == "false" ]]; then
     docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" quay.io;
     make push/kube-aws-approver;
   fi
