@@ -8,8 +8,6 @@ $( shell mkdir -p bin )
 
 build: bin/kube-aws-approver
 
-image: image/kube-aws-approver
-
 check:
 	@./scripts/gofmt.sh $(shell go list ./...)
 	@golint -set_exit_status $(shell go list ./...)
@@ -18,16 +16,18 @@ check:
 	@go test -v $(shell go list ./... | grep -v '/e2e')
 
 bin/kube-aws-approver: $(GOFILES)
-	@go build $(GOFLAGS) -o $(ROOT_DIR)bin/kube-aws-approver github.com/coreos/kubecsr/cmd/kube-aws-approver
+	@go build $(GOFLAGS) -o $(ROOT_DIR)/bin/kube-aws-approver github.com/coreos/kubecsr/cmd/kube-aws-approver
 
-image/kube-aws-approver: IMAGE_REPO=quay.io/coreos/kube-aws-approver
 image/kube-aws-approver:
-	docker build -t $(IMAGE_REPO):$(IMAGE_TAG) -f $(ROOT_DIR)/Dockerfile.kube-aws-approver .
+	@docker build -t quay.io/coreos/kube-aws-approver:$(IMAGE_TAG) -f $(ROOT_DIR)/Dockerfile.kube-aws-approver .
+
+push/kube-aws-approver: image/kube-aws-approver
+	@docker push quay.io/coreos/kube-aws-approver:$(IMAGE_TAG)
 
 vendor:
 	@dep ensure
 
 clean:
-	rm -rf _output
+	rm -rf $(ROOT_DIR)/bin
 
-.PHONY: build image check clean vendor
+.PHONY: build check clean vendor

@@ -1,7 +1,22 @@
 language: go
+services:
+- docker
 go:
-  - 1.9.x
+- 1.9.x
 install:
-  - go get github.com/golang/lint/golint
+- go get github.com/golang/lint/golint
 script:
-  - make clean check
+- make clean check
+after_sucess:
+- if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" quay.io;
+    make push/kube-aws-approver;
+  fi
+env:
+  global:
+  # $DOCKER_USERNAME encyrpted env variable
+  - secure: CpPqniMX6G95JiVKi2fJEeR0W6Cke81ay3tUKc/DDHN0Saag7IVDM954PnzbAAyVu8xb1+A3KHA4xKSA+xUyXrgk3mfxH5JpvGHu56rG8lfJXYZEWDio8IlFNpWczExKtAIxo4GbLZyj67eyLsL8fb1ITvYjr3S3MLwLvbemJN18XGVwyrOY4BGL0qbTeOA1gP+GuvWusArr5cvzcwoy6fFGEJpHeF4HmkH7nQ5EJF0jm3VcdOfjbDKodV9wLx1MILMCZPoQFbPw4vBBLqPsGcS38zEdBIaJ50me/tU8qctY8OqNt4hqrgsungBW0QNVQEcUxcPQU3TUo6UjBqnJIsHtgZRsuBlNs6xTyLvEHkBc0VjOVl6CHKBCAJfXC13RiY6DvE5uWoWF7xz60h7Sq2sVpoYHQ5cxU0uR/DWtjjIALPejY5EOrvKeg+pn+cmYYBFPLaWKCxQWD0fQko7/nYeUJqdZmxjjZmmsQfKC0dQRfg8XZ99ppnaJVRwz7txGIqbdaSlXJ1o2jW7cfxY0BMbvVM3uPeNH+PCPxoFMCa1ck1NTsCuDjgVOuJkEZkNCX2KfrjVCUYr4SRTbF0nQMqh6my3XDmMMCOFQRa6+gndm/1XLMjjJUMlwnSFucUg08GSPoVhBM4NilsRVYMA2NXlwcXe2EFiJrl17QNcoDu4=
+  # $DOCKER_PASSWORD encyrpted env variable
+  - secure: iU+Fz/vTkZY2ZNYnSniucXobrggC2XpTUAVfpj+tYYfZ3ezO+i2tBo3UrgiCLvo8FlE2pJ1zn0M8FbNOFKPs1HEw3l6qeLezUR7o2CocCjTxVsYdFbaZFAZRBX62h/FYVmqS4rumhwgfZaE1tcPbv8iGS1gqDVTwE3Jj2PzWviHHb7h30TJAvqnrpkB575DafTaYxtdLDrBWGER5QwGZpsVRU7fpR3cVjD2ZRcmmUSh5pycY9/lQjUORhCQXmGD5plxDjRmfDEH3XZI+YVbsZUOxu816MjCA2RcNd1DoXg65iSQIlNQEWC46FNtV6o/Iyf8mKcEmutrfnI8hz+4GGbEMTwrdgxyNG9+FrqOoP5RGD0iNIIXx2zdw9GrVRIjyHRgfL4Weqdrvt0Zxuyfnd5iNPFK9XyxLA+5KY/pRADaaVbYbJgVaj25Y8aDGxZnkH0tJgqVEgiig4gJlHgkyP2oWVPOm10PzFBsxKuCcrj3gnqVPgG6LHOhdjruFk8a68Ak35ChdLkC0LZ6K/2+I9GdaykIgVd2hvv67WislxRc2Rg7a5WwdHidnmjZGFV2mJfgumxdjLykJhVsqyvuulvK2hYDvzCC2L0Aq4NeiCj5jaQVWg7TnWRf+QAPCwA5hrq9VPv3cw7k8K28BlP4nm+U4/rhg0xLGd7WHueCsmkY=
+notifications:
+  email: false
