@@ -8,10 +8,7 @@ install:
 script:
 - make clean check
 after_success:
-- if [[ "$TRAVIS_BRANCH" == "master" && TRAVIS_PULL_REQUEST == "false" ]]; then
-    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" quay.io;
-    make push/kube-aws-approver;
-  fi
+- ./scripts/after-success.sh
 env:
   global:
   # $DOCKER_USERNAME encyrpted env variable
