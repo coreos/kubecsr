@@ -169,3 +169,19 @@
 [[override]]
   name = "github.com/inconshreveable/mousetrap"
   version = "v1.0"
+
+[[override]]
+  name = "github.com/cloudflare/cfssl"
+  version = "v1.3.1"
+
+[[override]]
+  name = "github.com/gorilla/context"
+  version = "v1.1"
+
+[[override]]
+  name = "github.com/gorilla/mux"
+  version = "v1.6.1"
+
+[[override]]
+  name = "github.com/google/certificate-transparency-go"
+  revision = "5ab67e519c93568ac3ee50fd6772a5bcf8aa460d"
