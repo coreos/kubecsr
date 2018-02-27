@@ -14,6 +14,7 @@ This is a scratch space for experiments around [Kubernetes TLS bootstrapping][tl
 # Documentation for tools in this repo
 
 1. [Kube AWS Approver](Documentation/kube-aws-approver.md)
+2. [etcd Certificate Generator](Documentation/etcd-certificate-generator.md)
 
 # Development guide
 
