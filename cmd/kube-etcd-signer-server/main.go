@@ -7,7 +7,7 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "kube-signer-server",
+		Use:   "kube-etcd-signer-server",
 		Short: "Certificate signer server",
 		Long:  "",
 	}
@@ -15,7 +15,7 @@ var (
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		glog.Exitf("Error executing kube-signer-server: %v", err)
+		glog.Exitf("Error executing kube-etcd-signer-server: %v", err)
 	}
 
 }

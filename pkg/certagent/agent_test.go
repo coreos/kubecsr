@@ -3,7 +3,10 @@ package certagent
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"net"
+	"os"
+	"path"
 	"testing"
 
 	certutil "k8s.io/client-go/util/cert"
@@ -16,13 +19,19 @@ var (
 		OrgName:       "system:etcd-peers",
 		CommonName:    "system:etcd-peer:test",
 		SignerAddress: "http://127.0.0.1:6443",
-		AssetsDir:     ".",
 	}
 )
 
 // TODO: add more unit tests to check agent specific behavior (response handling, etc)
 // remove external dependencies (files on disk, network interface, etc)
 func TestGenerateCSRObject(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("error getting current directory: %v", err)
+	}
+	cConfig.AssetsDir = wd
+	fmt.Printf("Dir = %v", wd)
+
 	generatedCSR, err := GenerateCSRObject(cConfig)
 	if err != nil {
 		t.Fatalf("error generating CSR object: %v", err)
@@ -65,5 +74,13 @@ func TestGenerateCSRObject(t *testing.T) {
 		t.Errorf("expected 1 IP address in the result, got %d", len(csr.IPAddresses))
 	} else if csr.IPAddresses[0].String() != cConfig.IPAddresses[0].String() {
 		t.Errorf("IPAddress mismatch. Wanted %v, got %v", cConfig.IPAddresses[0], csr.IPAddresses[0])
+	}
+
+	keyFile := path.Join(cConfig.AssetsDir, cConfig.CommonName+".key")
+	if _, err := os.Stat(keyFile); err == nil {
+		if err := os.Remove(keyFile); err != nil {
+			t.Errorf("error deleting file %s: %v", keyFile, err)
+		}
+
 	}
 }
