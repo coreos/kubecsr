@@ -18,11 +18,33 @@ check:
 bin/kube-aws-approver: $(GOFILES)
 	@go build $(GOFLAGS) -o $(ROOT_DIR)/bin/kube-aws-approver github.com/coreos/kubecsr/cmd/kube-aws-approver
 
+bin/kube-signer-server: $(GOFILES)
+	@go build $(GOFLAGS) -o $(ROOT_DIR)/bin/kube-signer-server github.com/coreos/kubecsr/cmd/kube-signer-server
+
+bin/kube-client-agent: $(GOFILES)
+	@go build $(GOFLAGS) -o $(ROOT_DIR)/bin/kube-client-agent github.com/coreos/kubecsr/cmd/kube-client-agent
+
 image/kube-aws-approver:
-	@docker build -t quay.io/coreos/kube-aws-approver:$(IMAGE_TAG) -f $(ROOT_DIR)/Dockerfile.kube-aws-approver .
+	@docker build -t quay.io/coreos/kube-aws-approver:$(IMAGE_TAG) -f $(ROOT_DIR)/dockerfiles/Dockerfile.kube-aws-approver .
 
 push/kube-aws-approver: image/kube-aws-approver
 	@docker push quay.io/coreos/kube-aws-approver:$(IMAGE_TAG)
+
+image/kube-signer-server:
+	@docker build -t quay.io/coreos/kube-signer-server:$(IMAGE_TAG) -f $(ROOT_DIR)/dockerfiles/Dockerfile.kube-signer-server .
+
+push/kube-signer-server: image/kube-signer-server
+	@docker push quay.io/coreos/kube-signer-server:$(IMAGE_TAG)
+
+image/kube-client-agent:
+	@docker build -t quay.io/coreos/kube-client-agent:$(IMAGE_TAG) -f $(ROOT_DIR)/dockerfiles/Dockerfile.kube-client-agent .
+
+push/kube-client-agent: image/kube-client-agent
+	@docker push quay.io/coreos/kube-client-agent:$(IMAGE_TAG)
+
+test:
+	@go test -v -i $(shell go list ./... | grep -v '/vendor/')
+	@go test -v $(shell go list ./... | grep -v '/vendor/')
 
 vendor:
 	@dep ensure
