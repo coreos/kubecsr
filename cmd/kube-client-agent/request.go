@@ -26,7 +26,7 @@ var (
 		ipAddresses string
 		assetsDir   string
 		addr        string
-		caCert      string
+		caCrt       string
 	}
 )
 
@@ -38,7 +38,7 @@ func init() {
 	requestCmd.PersistentFlags().StringVar(&requestOpts.ipAddresses, "ipaddrs", "", "Comma separated IP addresses of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.assetsDir, "assetsdir", "", "Directory location for the agent where it stores signed certs")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.addr, "address", "0.0.0.0:6443", "Address on which the signer listens for requests")
-	requestCmd.PersistentFlags().StringVar(&requestOpts.caCert, "cacert", "", "CA certificate for the client agent to establish trust with the signer")
+	requestCmd.PersistentFlags().StringVar(&requestOpts.caCrt, "cacrt", "", "CA certificate for the client agent to establish trust with the signer")
 }
 
 func validateRequestOpts(cmd *cobra.Command, args []string) error {
@@ -54,8 +54,8 @@ func validateRequestOpts(cmd *cobra.Command, args []string) error {
 	if requestOpts.assetsDir == "" {
 		return errors.New("missing required flag: --assetsdir")
 	}
-	if requestOpts.caCert == "" {
-		return errors.New("missing required flag: --cacert")
+	if requestOpts.caCrt == "" {
+		return errors.New("missing required flag: --cacrt")
 	}
 	return nil
 
@@ -82,7 +82,7 @@ func runCmdRequest(cmd *cobra.Command, args []string) error {
 		SignerAddress: requestOpts.addr,
 	}
 
-	if err := agent.StartAgent(c, requestOpts.caCert); err != nil {
+	if err := agent.StartAgent(c, requestOpts.caCrt); err != nil {
 		return fmt.Errorf("error starting agent: %s", err)
 	}
 	return nil
