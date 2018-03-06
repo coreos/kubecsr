@@ -31,7 +31,7 @@ make bin/kube-etcd-signer-server
 Run the following command to start the kube-etcd-signer-server instance with the example configuration flag values:
 
 ```
-./cmd/bin/kube-etcd-signer-server serve --cacrt=ca.crt --cakey=ca.key --assetsdir=<path to directory> --servcrt=server.crt --servkey=server.key
+./cmd/bin/kube-etcd-signer-server serve --cacrt=ca.crt --cakey=ca.key --csrdir=<path to directory> --servcrt=server.crt --servkey=server.key
 ```
 
 Now a signer has been setup and it listens for requests at `0.0.0.0:6443` (which is the default listening address)
@@ -48,7 +48,7 @@ make bin/kube-client-agent
 Run the following command to start the kube-client-agent with the example configuration flag values:
 
 ```
-./cmd/bin/kube-client-agent request --dnsnames=test --ipaddrs=10.8.89.9 --commonname=system:etcd-peer:etcd1 --orgname=system:etcd-peers --assetsdir=<path to directory>
+./cmd/bin/kube-client-agent request --dnsnames=test --ipaddrs=10.8.89.9 --commonname=system:etcd-peer:etcd1 --orgname=system:etcd-peers --assetsdir=<path to directory> --cacrt=ca.crt
 ```
 
 Check the `assetsDir` location for the signed certificate.
