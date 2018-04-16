@@ -63,14 +63,18 @@ func validateRequestOpts(cmd *cobra.Command, args []string) error {
 
 // runCmdRequest starts an instance of the agent which requests a CSR to be approved by the signer
 func runCmdRequest(cmd *cobra.Command, args []string) error {
-	ipAddrs := strings.Split(requestOpts.ipAddresses, ",")
-	ips := make([]net.IP, len(ipAddrs))
-	for i, addr := range ipAddrs {
-		ip := net.ParseIP(addr)
-		if ip == nil {
-			return fmt.Errorf("invalid ipaddress: %s", addr)
+	var ips []net.IP
+
+	// Empty ip addresses are also allowed.
+	if requestOpts.ipAddresses != "" {
+		ipAddrs := strings.Split(requestOpts.ipAddresses, ",")
+		for _, addr := range ipAddrs {
+			ip := net.ParseIP(addr)
+			if ip == nil {
+				return fmt.Errorf("invalid ipaddress: %s", addr)
+			}
+			ips = append(ips, ip)
 		}
-		ips[i] = ip
 	}
 
 	c := agent.CSRConfig{
