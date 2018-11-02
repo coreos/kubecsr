@@ -9,12 +9,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
 	capi "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	certificatesclient "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 
 	"github.com/coreos/kubecsr/pkg/util"
@@ -35,9 +34,6 @@ type CSRConfig struct {
 	// AssetsDir is the directory location where certificates and
 	// private keys will be saved
 	AssetsDir string `json:"assetsDir"`
-
-	// SignerAddress is the address of the signer which approves CSRs
-	SignerAddress string `json:"signerAddress"`
 }
 
 // CertAgent is the top level object that represents a certificate agent.
@@ -52,23 +48,12 @@ type CertAgent struct {
 }
 
 // NewAgent returns an initialized CertAgent instance or an error is unsuccessful
-func NewAgent(csrConfig CSRConfig, rootCAs string) (*CertAgent, error) {
-	tlsClientConfig := rest.TLSClientConfig{}
-
-	if _, err := certutil.NewPool(rootCAs); err != nil {
-		return nil, fmt.Errorf("error loading root CA config from %s, err: %v", rootCAs, err)
+func NewAgent(csrConfig CSRConfig, kubeconfigFile string) (*CertAgent, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
+	if err != nil {
+		return nil, err
 	}
-	tlsClientConfig.CAFile = rootCAs
-
-	c := &rest.Config{
-		Host: csrConfig.SignerAddress,
-		ContentConfig: rest.ContentConfig{
-			ContentType: "application/json",
-		},
-		TLSClientConfig: tlsClientConfig,
-		Timeout:         15 * time.Second,
-	}
-	client, err := certificatesclient.NewForConfig(c)
+	client, err := certificatesclient.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
@@ -77,22 +62,6 @@ func NewAgent(csrConfig CSRConfig, rootCAs string) (*CertAgent, error) {
 		client: client.CertificateSigningRequests(),
 		config: csrConfig,
 	}, nil
-}
-
-// StartAgent initializes a new CerAgent instance and requests a certificate
-// for the node according to the configuration values provided.
-func StartAgent(c CSRConfig, rootCAs string) error {
-	agent, err := NewAgent(c, rootCAs)
-	if err != nil {
-		return fmt.Errorf("error setting up agent: %v", err)
-	}
-
-	// requires a signer running
-	if err := agent.RequestCertificate(); err != nil {
-		return fmt.Errorf("error requesting certificate: %v", err)
-	}
-
-	return nil
 }
 
 // GenerateCSRObject generates a certificate signing request object and returns it.
