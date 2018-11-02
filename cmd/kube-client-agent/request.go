@@ -25,8 +25,7 @@ var (
 		dnsNames    string
 		ipAddresses string
 		assetsDir   string
-		addr        string
-		caCrt       string
+		kubeconfig  string
 	}
 )
 
@@ -37,8 +36,7 @@ func init() {
 	requestCmd.PersistentFlags().StringVar(&requestOpts.dnsNames, "dnsnames", "", "Comma separated DNS names of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.ipAddresses, "ipaddrs", "", "Comma separated IP addresses of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.assetsDir, "assetsdir", "", "Directory location for the agent where it stores signed certs")
-	requestCmd.PersistentFlags().StringVar(&requestOpts.addr, "address", "0.0.0.0:6443", "Address on which the signer listens for requests")
-	requestCmd.PersistentFlags().StringVar(&requestOpts.caCrt, "cacrt", "", "CA certificate for the client agent to establish trust with the signer")
+	requestCmd.PersistentFlags().StringVar(&requestOpts.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to connect to apiserver. If \"\", InClusterConfig is used which uses the service account kubernetes gives to pods.")
 }
 
 func validateRequestOpts(cmd *cobra.Command, args []string) error {
@@ -54,8 +52,8 @@ func validateRequestOpts(cmd *cobra.Command, args []string) error {
 	if requestOpts.assetsDir == "" {
 		return errors.New("missing required flag: --assetsdir")
 	}
-	if requestOpts.caCrt == "" {
-		return errors.New("missing required flag: --cacrt")
+	if requestOpts.kubeconfig == "" {
+		return errors.New("missing required flag: --kubeconfig")
 	}
 	return nil
 
@@ -77,17 +75,19 @@ func runCmdRequest(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	c := agent.CSRConfig{
-		CommonName:    requestOpts.commonName,
-		OrgName:       requestOpts.orgName,
-		DNSNames:      strings.Split(requestOpts.dnsNames, ","),
-		IPAddresses:   ips,
-		AssetsDir:     requestOpts.assetsDir,
-		SignerAddress: requestOpts.addr,
+	config := agent.CSRConfig{
+		CommonName:  requestOpts.commonName,
+		OrgName:     requestOpts.orgName,
+		DNSNames:    strings.Split(requestOpts.dnsNames, ","),
+		IPAddresses: ips,
+		AssetsDir:   requestOpts.assetsDir,
 	}
-
-	if err := agent.StartAgent(c, requestOpts.caCrt); err != nil {
-		return fmt.Errorf("error starting agent: %s", err)
+	a, err := agent.NewAgent(config, requestOpts.kubeconfig)
+	if err != nil {
+		return fmt.Errorf("error creating agent: %s", err)
+	}
+	if err := a.RequestCertificate(); err != nil {
+		return fmt.Errorf("error requesting certificate: %s", err)
 	}
 	return nil
 }

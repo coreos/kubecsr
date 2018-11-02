@@ -14,11 +14,10 @@ import (
 
 var (
 	cConfig = CSRConfig{
-		DNSNames:      []string{"localhost"},
-		IPAddresses:   []net.IP{net.ParseIP("127.0.0.1")},
-		OrgName:       "system:etcd-peers",
-		CommonName:    "system:etcd-peer:test",
-		SignerAddress: "http://127.0.0.1:6443",
+		DNSNames:    []string{"localhost"},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+		OrgName:     "system:etcd-peers",
+		CommonName:  "system:etcd-peer:test",
 	}
 )
 
