@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/glog"
 	capi "k8s.io/api/certificates/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	certificatesclient "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
@@ -102,14 +103,21 @@ func GenerateCSRObject(config CSRConfig) (*capi.CertificateSigningRequest, error
 // If something goes wrong it returns an error.
 // NOTE: This method does not return the approved CSR from the signer.
 func (c *CertAgent) RequestCertificate() error {
-	csr, err := GenerateCSRObject(c.config)
-	if err != nil {
-		return fmt.Errorf("error generating CSR Object: %v", err)
+	_, err := c.client.Get(c.config.CommonName, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error geting CSR Object: %v", err)
 	}
 
-	// send CSR to the signer
-	if _, err := c.client.Create(csr); err != nil {
-		return fmt.Errorf("error sending CSR to signer: %v", err)
+	if apierrors.IsNotFound(err) {
+		csr, err := GenerateCSRObject(c.config)
+		if err != nil {
+			return fmt.Errorf("error generating CSR Object: %v", err)
+		}
+
+		// send CSR to the signer
+		if _, err := c.client.Create(csr); err != nil {
+			return fmt.Errorf("error sending CSR to signer: %v", err)
+		}
 	}
 
 	rcvdCSR, err := c.WaitForCertificate()
@@ -129,7 +137,7 @@ func (c *CertAgent) RequestCertificate() error {
 // It does a GET to the signer with the CSR name.
 func (c *CertAgent) WaitForCertificate() (req *capi.CertificateSigningRequest, err error) {
 	interval := 3 * time.Second
-	timeout := 10 * time.Second
+	timeout := 10 * time.Minute
 
 	// implement the client GET request to the signer in a poll loop.
 	if err = wait.PollImmediate(interval, timeout, func() (bool, error) {
@@ -140,7 +148,7 @@ func (c *CertAgent) WaitForCertificate() (req *capi.CertificateSigningRequest, e
 		}
 		// if a CSR is returned without explicitly being `approved` or `denied` we want to retry
 		if approved, denied := util.GetCertApprovalCondition(&req.Status); !approved && !denied {
-			glog.Error("status on CSR not set. Retrying.")
+			glog.Error("status on CSR not set. status on CSR not set. Retrying.")
 			return false, nil
 		}
 		// if a CSR is returned with `approved` status set and no signed certificate we want to retry

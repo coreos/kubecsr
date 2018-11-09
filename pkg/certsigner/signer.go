@@ -3,28 +3,22 @@ package certsigner
 import (
 	"crypto"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
-	"github.com/golang/glog"
-	"github.com/gorilla/mux"
 	capi "k8s.io/api/certificates/v1beta1"
-	"k8s.io/client-go/kubernetes/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	certificatesclient "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	csrutil "k8s.io/client-go/util/certificate/csr"
+
+	"github.com/coreos/kubecsr/pkg/util"
 )
 
 const (
@@ -40,19 +34,6 @@ var (
 	// ErrInvalidCN defines a global error for invalid subject common name
 	ErrInvalidCN = errors.New("invalid subject Common Name")
 )
-
-// CertServer is the object that handles the HTTP requests and responses.
-// It recieves CSR approval requests from the client agent which the `signer`
-// then attempts to sign. If successful, the approved CSR is returned to the
-// agent which contains the signed certificate.
-type CertServer struct {
-	// mux is a request router instance
-	mux *mux.Router
-	// csrDir is the directory location where the signer stores CSRs
-	csrDir string
-	// signer is the object that handles the approval of the CSRs
-	signer *CertSigner
-}
 
 // CertSigner signs a certiifcate using a `cfssl` Signer.
 //
@@ -86,43 +67,6 @@ type Config struct {
 	EtcdPeerCertDuration time.Duration
 	// EtcdServerCertDuration is the cert duration for the `EtcdServer` profile
 	EtcdServerCertDuration time.Duration
-	// CSRDir is the directory location where the signer stores CSRs and serves them
-	CSRDir string
-}
-
-// loggingHandler is the HTTP handler that logs information about requests received by the server
-type loggingHandler struct {
-	h http.Handler
-}
-
-func (l *loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Info(r.Method, r.URL.Path)
-	l.h.ServeHTTP(w, r)
-}
-
-// NewServer returns a CertServer object that has a CertSigner object
-// as a part of it
-func NewServer(c Config) (*CertServer, error) {
-	signer, err := NewSigner(c)
-	if err != nil {
-		return nil, fmt.Errorf("error setting up a signer: %v", err)
-	}
-
-	mux := mux.NewRouter()
-	server := &CertServer{
-		mux:    mux,
-		csrDir: c.CSRDir,
-		signer: signer,
-	}
-
-	mux.HandleFunc("/apis/certificates.k8s.io/v1beta1/certificatesigningrequests", server.HandlePostCSR).Methods("POST")
-	mux.HandleFunc("/apis/certificates.k8s.io/v1beta1/certificatesigningrequests/{csrName}", server.HandleGetCSR).Methods("GET")
-
-	return server, nil
-}
-
-func (s *CertServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
 }
 
 // NewSigner returns a CertSigner object after filling in its attibutes
@@ -261,90 +205,39 @@ func getProfile(csr *x509.CertificateRequest) (string, error) {
 	return "", ErrInvalidOrg
 }
 
-// HandlePostCSR takes in a CSR, attempts to approve it and writes the CSR
-// to a file in the `csrDir`.
-// It returns a `http.StatusOK` to the client if the recieved CSR can
-// be sucessfully decoded.
-func (s *CertServer) HandlePostCSR(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
+// Sign uses the client to fetch the CSR from k8s API and uses the signer to sign the certificate.
+func Sign(signer *CertSigner, client certificatesclient.CertificateSigningRequestInterface, name string) error {
+	csr, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("Error reading request body: %v", err)
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
+		return err
+	}
+	if approved, denied := util.GetCertApprovalCondition(&csr.Status); len(csr.Status.Certificate) > 0 || approved || denied {
+		return fmt.Errorf("%s CSR seems to be already handled", name)
 	}
 
-	obj, _, err := scheme.Codecs.UniversalDeserializer().Decode(body, nil, nil)
+	signed, err := signer.Sign(csr)
 	if err != nil {
-		glog.Errorf("Error decoding request body: %v", err)
-		http.Error(w, "Failed to decode request body", http.StatusInternalServerError)
-		return
+		if signed != nil {
+			if _, denied := util.GetCertApprovalCondition(&signed.Status); denied {
+				// Set denied condition.
+				if _, err2 := client.UpdateApproval(signed); err2 != nil {
+					return fmt.Errorf("error (%v) when updating CSR condition because sign failed %v", err2, err)
+				}
+			}
+		}
+		return err
 	}
 
-	csr, ok := obj.(*capi.CertificateSigningRequest)
-	if !ok {
-		glog.Errorf("Invalid Certificate Signing Request in request from agent: %v", err)
-		http.Error(w, "Invalid Certificate Signing Request", http.StatusBadRequest)
-		return
-	}
-
-	signedCSR, err := s.signer.Sign(csr)
+	// Sets the .status.certificate.
+	rcvd, err := client.UpdateStatus(signed)
 	if err != nil {
-		glog.Errorf("Error signing CSR provided in request from agent: %v", err)
-		http.Error(w, "Error signing csr", http.StatusBadRequest)
-		return
+		return err
 	}
-
-	csrBytes, err := json.Marshal(signedCSR)
-	if err != nil {
-		glog.Errorf("Error marshalling approved CSR: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+	// Sets the approved condition.
+	// set the conditions from signed to rvcd otherwise there will be conflict.
+	rcvd.Status.Conditions = signed.Status.Conditions
+	if _, err := client.UpdateApproval(rcvd); err != nil {
+		return err
 	}
-
-	// write CSR to disk which will then be served to the agent.
-	csrFile := path.Join(s.csrDir, signedCSR.ObjectMeta.Name)
-	if err := ioutil.WriteFile(csrFile, csrBytes, 0600); err != nil {
-		glog.Errorf("Unable to write to %s: %v", csrFile, err)
-	}
-
-	// Send the signed CSR back to the client agent
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(csrBytes)
-
-	return
-}
-
-// HandleGetCSR retrieves a CSR from a directory location (`csrDir`) and returns it
-// to an agent.
-func (s *CertServer) HandleGetCSR(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	csrName := vars["csrName"]
-
-	if _, err := os.Stat(filepath.Join(s.csrDir, csrName)); os.IsNotExist(err) {
-		// csr file does not exist in `csrDir`
-		http.Error(w, "CSR not found with given CSR name"+csrName, http.StatusNotFound)
-		return
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(s.csrDir, csrName))
-	if err != nil {
-		http.Error(w, "error reading CSR from file", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-	w.Write(data)
-	return
-}
-
-// StartSignerServer initializes a new signer instance.
-func StartSignerServer(c Config) error {
-	s, err := NewServer(c)
-	if err != nil {
-		return fmt.Errorf("error setting up signer: %v", err)
-	}
-
-	h := &loggingHandler{s.mux}
-	return http.ListenAndServeTLS(c.ListenAddress, c.ServerCertFile, c.ServerKeyFile, h)
+	return nil
 }
