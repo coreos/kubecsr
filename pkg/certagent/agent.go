@@ -49,10 +49,19 @@ type CertAgent struct {
 
 // NewAgent returns an initialized CertAgent instance or an error is unsuccessful
 func NewAgent(csrConfig CSRConfig, kubeconfigFile string) (*CertAgent, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
+	content, err := ioutil.ReadFile(kubeconfigFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading file %s: %v", kubeconfigFile, err)
 	}
+	kubeconfig, err := clientcmd.Load(content)
+	if err != nil {
+		return nil, fmt.Errorf("error reading config from bytes: %v", err)
+	}
+	config, err := clientcmd.NewDefaultClientConfig(*kubeconfig, &clientcmd.ConfigOverrides{}).ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error creating client config: %v", err)
+	}
+
 	client, err := certificatesclient.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
