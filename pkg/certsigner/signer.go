@@ -227,6 +227,7 @@ func signerPolicy(c Config) config.Signing {
 				Usage: []string{
 					string(capi.UsageKeyEncipherment),
 					string(capi.UsageDigitalSignature),
+					string(capi.UsageClientAuth),
 					string(capi.UsageServerAuth),
 				},
 				Expiry:       c.EtcdServerCertDuration,
