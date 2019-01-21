@@ -164,6 +164,7 @@ func NewSigner(c Config) (*CertSigner, error) {
 				Usage: []string{
 					string(capi.UsageKeyEncipherment),
 					string(capi.UsageDigitalSignature),
+					string(capi.UsageClientAuth),
 					string(capi.UsageServerAuth),
 				},
 				Expiry:       c.EtcdServerCertDuration,
