@@ -26,6 +26,7 @@ var (
 		ipAddresses string
 		assetsDir   string
 		kubeconfig  string
+		csrName     string
 	}
 )
 
@@ -35,6 +36,7 @@ func init() {
 	requestCmd.PersistentFlags().StringVar(&requestOpts.orgName, "orgname", "", "CA private key file for signer")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.dnsNames, "dnsnames", "", "Comma separated DNS names of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.ipAddresses, "ipaddrs", "", "Comma separated IP addresses of the node to be provided for the X509 certificate")
+	requestCmd.PersistentFlags().StringVar(&requestOpts.csrName, "name", "", "Name for the CertificateSigningRequest object, defaults to value provided by 'commonname' arg")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.assetsDir, "assetsdir", "", "Directory location for the agent where it stores signed certs")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to connect to apiserver. If \"\", InClusterConfig is used which uses the service account kubernetes gives to pods.")
 }
@@ -75,12 +77,17 @@ func runCmdRequest(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	csrName := requestOpts.csrName
+	if csrName == "" {
+		csrName = requestOpts.commonName
+	}
 	config := agent.CSRConfig{
 		CommonName:  requestOpts.commonName,
 		OrgName:     requestOpts.orgName,
 		DNSNames:    strings.Split(requestOpts.dnsNames, ","),
 		IPAddresses: ips,
 		AssetsDir:   requestOpts.assetsDir,
+		CSRName:     csrName,
 	}
 	a, err := agent.NewAgent(config, requestOpts.kubeconfig)
 	if err != nil {

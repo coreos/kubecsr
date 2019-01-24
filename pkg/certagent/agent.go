@@ -34,6 +34,10 @@ type CSRConfig struct {
 	// AssetsDir is the directory location where certificates and
 	// private keys will be saved
 	AssetsDir string `json:"assetsDir"`
+
+	// CSRName is the name of the CertificateSigningRequest object
+	// that will be created
+	CSRName string `json:"csrName"`
 }
 
 // CertAgent is the top level object that represents a certificate agent.
@@ -97,7 +101,7 @@ func GenerateCSRObject(config CSRConfig) (*capi.CertificateSigningRequest, error
 
 	csr := &capi.CertificateSigningRequest{
 		TypeMeta:   metav1.TypeMeta{Kind: "CertificateSigningRequest"},
-		ObjectMeta: metav1.ObjectMeta{Name: config.CommonName},
+		ObjectMeta: metav1.ObjectMeta{Name: config.CSRName},
 		Spec: capi.CertificateSigningRequestSpec{
 			Request: csrData,
 		},
@@ -142,7 +146,7 @@ func (c *CertAgent) WaitForCertificate() (req *capi.CertificateSigningRequest, e
 
 	// implement the client GET request to the signer in a poll loop.
 	if err = wait.PollImmediate(interval, timeout, func() (bool, error) {
-		req, err = c.client.Get(c.config.CommonName, metav1.GetOptions{})
+		req, err = c.client.Get(c.config.CSRName, metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("unable to retrieve approved CSR: %v. Retrying.", err)
 			return false, nil
