@@ -1,0 +1,18 @@
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.10 AS builder
+
+WORKDIR /go/src/github.com/coreos/kubecsr
+
+COPY . .
+
+RUN make bin/kube-etcd-signer-server
+
+# stage 2
+FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
+
+ENTRYPOINT ["/usr/bin/kube-etcd-signer-server"]
+
+COPY --from=builder /go/src/github.com/coreos/kubecsr/bin/kube-etcd-signer-server /usr/bin/
+
+LABEL io.k8s.display-name="kube-etcd-signer-server" \
+      io.k8s.description="The certificate signer approves a given valid CSR provided by the client agent and returns a signed certificate." \
+      maintainer="Sam Batschelet <sbatsche@redhat.com>"
