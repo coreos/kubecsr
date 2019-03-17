@@ -1,0 +1,18 @@
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.10 AS builder
+
+WORKDIR /go/src/github.com/coreos/kubecsr
+
+COPY . .
+
+RUN make bin/kube-client-agent
+
+# stage 2
+FROM registry.svc.ci.openshift.org/ocp/4.0:base 
+
+ENTRYPOINT ["/usr/bin/kube-client-agent"]
+
+COPY --from=builder /go/src/github.com/coreos/kubecsr/bin/kube-client-agent /usr/bin/
+
+LABEL io.k8s.display-name="kube-client-agent" \
+      io.k8s.description="This client agent generates a valid CSR according to the configuration flags provided to it." \
+      maintainer="Sam Batschelet <sbatsche@redhat.com>"
