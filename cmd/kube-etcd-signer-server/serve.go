@@ -21,11 +21,15 @@ var (
 	serveOpts struct {
 		caCrtFile     string
 		caKeyFile     string
+		mCACrtFile    string
+		mCAKeyFile    string
+		mCASigner     bool
 		sCrtFile      string
 		sKeyFile      string
 		addr          string
 		peerCertDur   string
 		serverCertDur string
+		metricCertDur string
 		csrDir        string
 	}
 )
@@ -36,7 +40,10 @@ func init() {
 	serveCmd.PersistentFlags().StringVar(&serveOpts.caKeyFile, "cakey", "", "CA private key file for signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.sCrtFile, "servcrt", "", "Server certificate file for signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.sKeyFile, "servkey", "", "Server private key file for signer")
+	serveCmd.PersistentFlags().StringVar(&serveOpts.mCACrtFile, "metric-cacrt", "", "CA certificate file for metrics signer")
+	serveCmd.PersistentFlags().StringVar(&serveOpts.mCAKeyFile, "metric-cakey", "", "CA private key file for metrics signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.addr, "address", "0.0.0.0:6443", "Address on which the signer listens for requests")
+	serveCmd.PersistentFlags().StringVar(&serveOpts.metricCertDur, "metriccertdur", "8760h", "Certificate duration for etcd metrics certs (defaults to 365 days)")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.peerCertDur, "peercertdur", "8760h", "Certificate duration for etcd peer certs (defaults to 365 days)")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.serverCertDur, "servercertdur", "8760h", "Certificate duration for etcd server certs (defaults to 365 days)")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.csrDir, "csrdir", "", "Directory location where signer will save CSRs.")
@@ -44,9 +51,17 @@ func init() {
 
 // validateServeOpts validates the user flag values given to the signer server
 func validateServeOpts(cmd *cobra.Command, args []string) error {
-	if serveOpts.caCrtFile == "" || serveOpts.caKeyFile == "" {
-		return errors.New("both --cacrt and --cakey are required flags")
+	caPair := 0
+	if serveOpts.caCrtFile != "" && serveOpts.caKeyFile != "" {
+		caPair++
 	}
+	if serveOpts.mCACrtFile != "" && serveOpts.mCAKeyFile != "" {
+		caPair++
+	}
+	if caPair == 0 {
+		return errors.New("no signer CA flags passed one cert/key pair is required")
+	}
+
 	if serveOpts.sCrtFile == "" || serveOpts.sKeyFile == "" {
 		return errors.New("both --servcrt and --servkey are required flags")
 	}
@@ -67,13 +82,24 @@ func runCmdServe(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error parsing duration for etcd server cert: %v", err)
 	}
+	mCertDur, err := time.ParseDuration(serveOpts.metricCertDur)
+	if err != nil {
+		return fmt.Errorf("error parsing duration for etcd metric cert: %v", err)
+	}
+
+	ca := signer.SignerCAFiles{
+		CACert:       serveOpts.caCrtFile,
+		CAKey:        serveOpts.caKeyFile,
+		MetricCACert: serveOpts.mCACrtFile,
+		MetricCAKey:  serveOpts.mCAKeyFile,
+	}
 
 	c := signer.Config{
-		CACertFile:             serveOpts.caCrtFile,
-		CAKeyFile:              serveOpts.caKeyFile,
+		SignerCAFiles:          ca,
 		ServerCertFile:         serveOpts.sCrtFile,
 		ServerKeyFile:          serveOpts.sKeyFile,
 		ListenAddress:          serveOpts.addr,
+		EtcdMetricCertDuration: mCertDur,
 		EtcdPeerCertDuration:   pCertDur,
 		EtcdServerCertDuration: sCertDur,
 		CSRDir:                 serveOpts.csrDir,
