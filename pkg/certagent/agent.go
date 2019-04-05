@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/api/certificates/v1beta1"
 	capi "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -120,28 +121,37 @@ func (c *CertAgent) RequestCertificate() error {
 		return fmt.Errorf("error generating CSR Object: %v", err)
 	}
 
-	backoff := wait.Backoff{
-		Steps:    c.config.MaxRetry,
-		Duration: 10 * time.Second,
-		Factor:   0.0,
-	}
-
-	var lastErr error
-	// implement a retry mechanism in the case request fails.
-	errc := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		// send CSR to the signer
-		_, err := c.client.Create(csr)
-		if err != nil {
-			lastErr = err
-			return false, nil
+	duration := 10 * time.Second
+	steps := c.config.MaxRetry
+	// if steps is 1 we wait duration if step is greater than 1
+	// we wait duration + (step * duration), if 0 we wait forever.
+	if steps == 0 {
+		wait.PollInfinite(duration, func() (bool, error) {
+			ok, err, _ := c.checkClientCreate(csr)
+			return ok, err
+		})
+	} else {
+		backoff := wait.Backoff{
+			Duration: duration,
+			Factor:   0.0,
+			Steps:    steps,
 		}
-		return true, nil
-	})
-	if errc != nil {
-		if errc == wait.ErrWaitTimeout && lastErr != nil {
-			errc = lastErr
+		var lastErr error
+		// implement a retry mechanism in the case request fails.
+		errc := wait.ExponentialBackoff(backoff, func() (bool, error) {
+			// send CSR to the signer
+			ok, err, errl := c.checkClientCreate(csr)
+			if errl != nil {
+				lastErr = errl
+			}
+			return ok, err
+		})
+		if errc != nil {
+			if errc == wait.ErrWaitTimeout && lastErr != nil {
+				errc = lastErr
+			}
+			return fmt.Errorf("error sending CSR to signer: %v", errc)
 		}
-		return fmt.Errorf("error sending CSR to signer: %v", errc)
 	}
 
 	rcvdCSR, err := c.WaitForCertificate()
@@ -155,6 +165,16 @@ func (c *CertAgent) RequestCertificate() error {
 		return fmt.Errorf("unable to write to %s: %v", certFile, err)
 	}
 	return nil
+}
+
+func (c *CertAgent) checkClientCreate(csr *v1beta1.CertificateSigningRequest) (bool, error, error) {
+	// send CSR to the signer
+	_, err := c.client.Create(csr)
+	if err != nil {
+		glog.Errorf("error sending CSR to signer: %v", err)
+		return false, nil, err
+	}
+	return true, nil, nil
 }
 
 // WaitForCertificate waits for a certificate to be issued until timeout, or returns an error.
