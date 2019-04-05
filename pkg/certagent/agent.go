@@ -108,7 +108,8 @@ func GenerateCSRObject(config CSRConfig) (*capi.CertificateSigningRequest, error
 
 // RequestCertificate will create a certificate signing request for a node
 // with the config given and send it to a signer via a POST request.
-// If something goes wrong it returns an error.
+// If something goes wrong it returns an error but wait forever for
+// server to respond to request.
 // NOTE: This method does not return the approved CSR from the signer.
 func (c *CertAgent) RequestCertificate() error {
 	csr, err := GenerateCSRObject(c.config)
@@ -116,10 +117,16 @@ func (c *CertAgent) RequestCertificate() error {
 		return fmt.Errorf("error generating CSR Object: %v", err)
 	}
 
-	// send CSR to the signer
-	if _, err := c.client.Create(csr); err != nil {
-		return fmt.Errorf("error sending CSR to signer: %v", err)
-	}
+	duration := 10 * time.Second
+	// wait forever for success and retry every duration interval
+	wait.PollInfinite(duration, func() (bool, error) {
+		_, err := c.client.Create(csr)
+		if err != nil {
+			glog.Errorf("error sending CSR to signer: %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
 
 	rcvdCSR, err := c.WaitForCertificate()
 	if err != nil {
