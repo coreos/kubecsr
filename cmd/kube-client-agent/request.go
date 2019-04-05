@@ -26,7 +26,6 @@ var (
 		ipAddresses string
 		assetsDir   string
 		kubeconfig  string
-		maxRetry    int
 	}
 )
 
@@ -38,7 +37,6 @@ func init() {
 	requestCmd.PersistentFlags().StringVar(&requestOpts.ipAddresses, "ipaddrs", "", "Comma separated IP addresses of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.assetsDir, "assetsdir", "", "Directory location for the agent where it stores signed certs")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to connect to apiserver. If \"\", InClusterConfig is used which uses the service account kubernetes gives to pods.")
-	requestCmd.PersistentFlags().IntVar(&requestOpts.maxRetry, "max-retry", 0, "If value is greater than 0 wait 10 seconds for success and retry N times.")
 }
 
 func validateRequestOpts(cmd *cobra.Command, args []string) error {
@@ -83,7 +81,6 @@ func runCmdRequest(cmd *cobra.Command, args []string) error {
 		DNSNames:    strings.Split(requestOpts.dnsNames, ","),
 		IPAddresses: ips,
 		AssetsDir:   requestOpts.assetsDir,
-		MaxRetry:    requestOpts.maxRetry,
 	}
 	a, err := agent.NewAgent(config, requestOpts.kubeconfig)
 	if err != nil {
