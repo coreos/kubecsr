@@ -2,6 +2,7 @@ package certsigner
 
 import (
 	"crypto"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -77,14 +78,17 @@ type CertSigner struct {
 	cfsslSigner *local.Signer
 }
 
+// CertKey stores files for the cert and key pair.
+type CertKey struct {
+	CertFile, KeyFile string
+}
+
 // Config holds the configuration values required to start a new signer
 type Config struct {
 	// SignerCAFiles
 	SignerCAFiles
-	// ServerCertFile is the file location of the server certificate
-	ServerCertFile string
-	// ServerKeyFile is the file location of the server private key
-	ServerKeyFile string
+	// ServerCertKeys is a list of server certificates for serving on TLS based on SNI
+	ServerCertKeys []CertKey
 	// ListenAddress is the address at which the server listens for requests
 	ListenAddress string
 	// EtcdMetricCertDuration
@@ -440,7 +444,22 @@ func StartSignerServer(c Config) error {
 	if err != nil {
 		return fmt.Errorf("error setting up signer: %v", err)
 	}
-
 	h := &loggingHandler{s.mux}
-	return http.ListenAndServeTLS(c.ListenAddress, c.ServerCertFile, c.ServerKeyFile, h)
+
+	certs := make([]tls.Certificate, len(c.ServerCertKeys))
+	for idx, pair := range c.ServerCertKeys {
+		certs[idx], err = tls.LoadX509KeyPair(pair.CertFile, pair.KeyFile)
+		if err != nil {
+			return fmt.Errorf("Failed to load key pair from (%q, %q): %v", pair.CertFile, pair.KeyFile, err)
+		}
+	}
+	tlsconfig := &tls.Config{
+		Certificates: certs,
+	}
+	tlsconfig.BuildNameToCertificate()
+	return (&http.Server{
+		TLSConfig: tlsconfig,
+		Handler:   h,
+		Addr:      c.ListenAddress,
+	}).ListenAndServeTLS("", "")
 }
