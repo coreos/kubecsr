@@ -24,8 +24,8 @@ var (
 		mCACrtFile    string
 		mCAKeyFile    string
 		mCASigner     bool
-		sCrtFile      string
-		sKeyFile      string
+		sCrtFiles     []string
+		sKeyFiles     []string
 		addr          string
 		peerCertDur   string
 		serverCertDur string
@@ -38,8 +38,8 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 	serveCmd.PersistentFlags().StringVar(&serveOpts.caCrtFile, "cacrt", "", "CA certificate file for signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.caKeyFile, "cakey", "", "CA private key file for signer")
-	serveCmd.PersistentFlags().StringVar(&serveOpts.sCrtFile, "servcrt", "", "Server certificate file for signer")
-	serveCmd.PersistentFlags().StringVar(&serveOpts.sKeyFile, "servkey", "", "Server private key file for signer")
+	serveCmd.PersistentFlags().StringArrayVar(&serveOpts.sCrtFiles, "servcrt", []string{}, "Server certificate file for signer")
+	serveCmd.PersistentFlags().StringArrayVar(&serveOpts.sKeyFiles, "servkey", []string{}, "Server private key file for signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.mCACrtFile, "metric-cacrt", "", "CA certificate file for metrics signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.mCAKeyFile, "metric-cakey", "", "CA private key file for metrics signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.addr, "address", "0.0.0.0:6443", "Address on which the signer listens for requests")
@@ -62,8 +62,10 @@ func validateServeOpts(cmd *cobra.Command, args []string) error {
 		return errors.New("no signer CA flags passed one cert/key pair is required")
 	}
 
-	if serveOpts.sCrtFile == "" || serveOpts.sKeyFile == "" {
-		return errors.New("both --servcrt and --servkey are required flags")
+	if cl, kl := len(serveOpts.sCrtFiles), len(serveOpts.sKeyFiles); cl == 0 || kl == 0 {
+		return errors.New("at least one pair of --servcrt and --servkey is required")
+	} else if cl != kl {
+		return fmt.Errorf("%d --servercrt does not match %d --servkey", cl, kl)
 	}
 	if serveOpts.csrDir == "" {
 		return errors.New("missing required flag: --csrdir")
@@ -93,11 +95,13 @@ func runCmdServe(cmd *cobra.Command, args []string) error {
 		MetricCACert: serveOpts.mCACrtFile,
 		MetricCAKey:  serveOpts.mCAKeyFile,
 	}
-
+	servercerts := make([]signer.CertKey, len(serveOpts.sCrtFiles))
+	for idx := range serveOpts.sCrtFiles {
+		servercerts[idx] = signer.CertKey{CertFile: serveOpts.sCrtFiles[idx], KeyFile: serveOpts.sKeyFiles[idx]}
+	}
 	c := signer.Config{
 		SignerCAFiles:          ca,
-		ServerCertFile:         serveOpts.sCrtFile,
-		ServerKeyFile:          serveOpts.sKeyFile,
+		ServerCertKeys:         servercerts,
 		ListenAddress:          serveOpts.addr,
 		EtcdMetricCertDuration: mCertDur,
 		EtcdPeerCertDuration:   pCertDur,
