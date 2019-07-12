@@ -31,6 +31,8 @@ var (
 		serverCertDur string
 		metricCertDur string
 		csrDir        string
+
+		insecureHealthCheckAddr string
 	}
 )
 
@@ -43,6 +45,7 @@ func init() {
 	serveCmd.PersistentFlags().StringVar(&serveOpts.mCACrtFile, "metric-cacrt", "", "CA certificate file for metrics signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.mCAKeyFile, "metric-cakey", "", "CA private key file for metrics signer")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.addr, "address", "0.0.0.0:6443", "Address on which the signer listens for requests")
+	serveCmd.PersistentFlags().StringVar(&serveOpts.insecureHealthCheckAddr, "insecure-health-check-address", "0.0.0.0:6440", "Address on which the signer listens for insecure health requests")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.metricCertDur, "metriccertdur", "8760h", "Certificate duration for etcd metrics certs (defaults to 365 days)")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.peerCertDur, "peercertdur", "8760h", "Certificate duration for etcd peer certs (defaults to 365 days)")
 	serveCmd.PersistentFlags().StringVar(&serveOpts.serverCertDur, "servercertdur", "8760h", "Certificate duration for etcd server certs (defaults to 365 days)")
@@ -107,6 +110,8 @@ func runCmdServe(cmd *cobra.Command, args []string) error {
 		EtcdPeerCertDuration:   pCertDur,
 		EtcdServerCertDuration: sCertDur,
 		CSRDir:                 serveOpts.csrDir,
+
+		InsecureHealthCheckAddress: serveOpts.insecureHealthCheckAddr,
 	}
 
 	if err := signer.StartSignerServer(c); err != nil {

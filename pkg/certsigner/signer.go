@@ -91,6 +91,8 @@ type Config struct {
 	ServerCertKeys []CertKey
 	// ListenAddress is the address at which the server listens for requests
 	ListenAddress string
+	// InsecureHealthCheckAddress is the address at which the server listens for insecure health checks
+	InsecureHealthCheckAddress string
 	// EtcdMetricCertDuration
 	EtcdMetricCertDuration time.Duration
 	// EtcdPeerCertDuration is the cert duration for the `EtcdPeer` profile
@@ -148,6 +150,7 @@ func NewServer(c Config) (*CertServer, error) {
 
 	mux.HandleFunc("/apis/certificates.k8s.io/v1beta1/certificatesigningrequests", server.HandlePostCSR).Methods("POST")
 	mux.HandleFunc("/apis/certificates.k8s.io/v1beta1/certificatesigningrequests/{csrName}", server.HandleGetCSR).Methods("GET")
+	mux.HandleFunc("/readyz", HandleHealthCheck).Methods("GET", "HEAD")
 
 	return server, nil
 }
@@ -438,6 +441,12 @@ func (s *CertServer) HandleGetCSR(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// HandleHealthCheck handles health check
+func HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Length", "0")
+	w.WriteHeader(http.StatusOK)
+}
+
 // StartSignerServer initializes a new signer instance.
 func StartSignerServer(c Config) error {
 	s, err := NewServer(c)
@@ -457,6 +466,15 @@ func StartSignerServer(c Config) error {
 		Certificates: certs,
 	}
 	tlsconfig.BuildNameToCertificate()
+
+	// start insecure health check server
+	insecureHCMux := mux.NewRouter()
+	insecureHCMux.HandleFunc("/readyz", HandleHealthCheck).Methods("GET", "HEAD")
+	go (&http.Server{
+		Handler: &loggingHandler{insecureHCMux},
+		Addr:    c.InsecureHealthCheckAddress,
+	}).ListenAndServe()
+
 	return (&http.Server{
 		TLSConfig: tlsconfig,
 		Handler:   h,
