@@ -30,13 +30,16 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(requestCmd)
+	rootCmd.AddCommand(requestCmd, mountSecretCmd)
 	requestCmd.PersistentFlags().StringVar(&requestOpts.commonName, "commonname", "", "Common name for the certificate being requested")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.orgName, "orgname", "", "CA private key file for signer")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.dnsNames, "dnsnames", "", "Comma separated DNS names of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.ipAddresses, "ipaddrs", "", "Comma separated IP addresses of the node to be provided for the X509 certificate")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.assetsDir, "assetsdir", "", "Directory location for the agent where it stores signed certs")
 	requestCmd.PersistentFlags().StringVar(&requestOpts.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to connect to apiserver. If \"\", InClusterConfig is used which uses the service account kubernetes gives to pods.")
+
+	mountSecretCmd.PersistentFlags().StringVar(&mountSecretOpts.commonName, "commonname", "", "Common name for the certificate being requested")
+	mountSecretCmd.PersistentFlags().StringVar(&mountSecretOpts.assetsDir, "assetsdir", "", "Directory location for the agent where it stores signed certs")
 }
 
 func validateRequestOpts(cmd *cobra.Command, args []string) error {
