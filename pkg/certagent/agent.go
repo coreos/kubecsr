@@ -170,3 +170,16 @@ func (c *CertAgent) WaitForCertificate() (req *capi.CertificateSigningRequest, e
 	}
 	return
 }
+
+// UnescapeIPV6Address removes left and right brackets used to escape IPv6 addresses. Example
+// [2605:2700:0:3::4713:93e3] will return 2605:2700:0:3::4713:93e3. If this escaping does
+// not exist return the original address without additional validation.
+func UnescapeIPV6Address(addr string) string {
+	firstChar := addr[:1]
+	lastChar := addr[len(addr)-1:]
+
+	if firstChar == "[" && lastChar == "]" {
+		return addr[1 : len(addr)-1]
+	}
+	return addr
+}
