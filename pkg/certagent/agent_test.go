@@ -83,3 +83,23 @@ func TestGenerateCSRObject(t *testing.T) {
 
 	}
 }
+
+func TestUnescapeIPV6Address(t *testing.T) {
+	for _, test := range []struct {
+		ip   string
+		want string
+	}{
+		{"127.0.0.1", "127.0.0.1"},
+		{"127.0.0.1:2379", "127.0.0.1:2379"},
+		{"https://127.0.0.1:2379", "https://127.0.0.1:2379"},
+		{"[::]", "::"},
+		{"[::1]:2379", "[::1]:2379"},
+		{"[2001:0db8:85a3:0000:0000:8a2e:0370:7334]", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"},
+		{"https://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:2379", "https://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:2379"},
+	} {
+		got := UnescapeIPV6Address(test.ip)
+		if got != test.want {
+			t.Errorf("UnescapeIPV6Address(%q) = %q want %q", test.ip, got, test.want)
+		}
+	}
+}

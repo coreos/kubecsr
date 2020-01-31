@@ -67,7 +67,7 @@ func runCmdRequest(cmd *cobra.Command, args []string) error {
 	if requestOpts.ipAddresses != "" {
 		ipAddrs := strings.Split(requestOpts.ipAddresses, ",")
 		for _, addr := range ipAddrs {
-			ip := net.ParseIP(addr)
+			ip := net.ParseIP(agent.UnescapeIPV6Address(addr))
 			if ip == nil {
 				return fmt.Errorf("invalid ipaddress: %s", addr)
 			}
